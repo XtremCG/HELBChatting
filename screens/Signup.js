@@ -3,34 +3,39 @@ import {
   StyleSheet,
   Text,
   View,
-  Button,
   TextInput,
   Image,
   SafeAreaView,
   TouchableOpacity,
-  StatusBar,
   Alert,
 } from "react-native";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../config/firebase";
+import { createUserWithEmailAndPassword, updateProfile  } from "firebase/auth";
+import { auth, database } from "../config/firebase";
+import { addDoc, collection } from "firebase/firestore";
+
 const backImage = require("../assets/backImage.png");
 
 export default function Register({ navigation }) {
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password1, setPassword1] = useState("");
   const [password2, setPassword2] = useState("");
 
   const onHandleSignup = async () => {
-    if (email === "" || password1 === "" || password2 === "") {
+    if (email === "" || password1 === "" || password2 === "" || username === "") {
       Alert.alert("Please fill in all fields");
       return;
     }
+    if (password1 !== password2) {
+      Alert.alert("Passwords do not match");
+      return;
+    }
+
     try {
-      if (password1 !== password2) {
-        Alert.alert("Passwords do not match");
-        return;
-      }
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password1);
+      await updateProfile(userCredential.user, {
+        displayName: username,
+      });
       Alert.alert("Signup success!");
     } catch (error) {
       Alert.alert("Error Occurred: ", error.message);
@@ -43,51 +48,55 @@ export default function Register({ navigation }) {
       <View style={styles.whiteSheets} />
       <SafeAreaView style={styles.form}>
         <Text style={styles.title}>Sign Up</Text>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Username"
+          autoCapitalize="none"
+          value={username}
+          autoFocus={true}
+          onChangeText={(text) => setUsername(text)}
+        />
+
         <TextInput
           style={styles.input}
           placeholder="Enter Email"
           autoCapitalize="none"
           keyboardType="email-address"
           textContentType="emailAddress"
-          autoFocus={true}
           value={email}
           onChangeText={(text) => setEmail(text)}
         />
+
         <TextInput
           style={styles.input}
           secureTextEntry
           placeholder="Enter Password"
           autoCapitalize="none"
           autoCorrect={false}
-          secureTextEntryStyle={true}
           textContentType="password"
           value={password1}
           onChangeText={(text) => setPassword1(text)}
         />
+
         <TextInput
           style={styles.input}
           secureTextEntry
           placeholder="Confirm Password"
           autoCapitalize="none"
           autoCorrect={false}
-          secureTextEntryStyle={true}
           textContentType="password"
           value={password2}
           onChangeText={(text) => setPassword2(text)}
         />
+
         <TouchableOpacity style={styles.button} onPress={onHandleSignup}>
           <Text style={{ fontWeight: "bold", color: "#fff", fontSize: 18 }}>
             Sign Up
           </Text>
         </TouchableOpacity>
-        <View
-          style={{
-            marginTop: 20,
-            flexDirection: "row",
-            alignItems: "center",
-            alignSelf: "center",
-          }}
-        >
+
+        <View style={styles.loginPrompt}>
           <Text style={{ color: "grey", fontWeight: "600", fontSize: 14 }}>
             Already have an account?{" "}
           </Text>
@@ -113,7 +122,7 @@ const styles = StyleSheet.create({
     color: "#7383f3",
     alignSelf: "center",
     paddingBottom: 24,
-    marginTop: 65 // afin de descendre tout vers le bas
+    marginTop: 160,
   },
   input: {
     backgroundColor: "#F6F7FB",
@@ -150,5 +159,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: 30,
+  },
+  imagePickerButton: {
+    backgroundColor: "#7383f3",
+    height: 58,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  selectedImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  loginPrompt: {
+    marginTop: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "center",
   },
 });

@@ -4,6 +4,7 @@ import { getFirestore } from "firebase/firestore";
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
+// Firebase configuration
 const firebaseConfig = {
   apiKey: Constants.manifest?.extra?.apiKey || Constants.expoConfig?.extra?.apiKey,
   authDomain: Constants.manifest?.extra?.authDomain || Constants.expoConfig?.extra?.authDomain,
