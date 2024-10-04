@@ -1,41 +1,75 @@
-import React, { useLayoutEffect } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useLayoutEffect, useState } from "react";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  TextInput,
+  Alert,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { FontAwesome, AntDesign } from "@expo/vector-icons";
 import colors from "../colors";
-import { signOut } from "firebase/auth";
-import { auth, database } from "../config/firebase";
+import { signOut, updateProfile } from "firebase/auth";
+import { auth } from "../config/firebase";
+import Toast from "react-native-toast-message";
 
 const defaultProfilePic = require("../assets/default-profile-pic.png");
 
 const ProfilePage = () => {
   const navigation = useNavigation();
-  
-  const user = {
-    name: auth.currentUser?.displayName,
-    email: auth.currentUser.email,
-  };
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [name, setName] = useState(auth.currentUser?.displayName || "");
+  const [email, setEmail] = useState(auth.currentUser?.email || "");
 
   const onSignOut = () => {
     signOut(auth).catch((e) => console.log(e));
   };
 
+  const handleEditProfile = () => setIsEditModalVisible(!isEditModalVisible);
+
+  const handleSaveProfile = () => {
+    if (name === "") {
+      Alert.alert("Please enter a name");
+      return;
+    }
+    updateProfile(auth.currentUser, {
+      displayName: name,
+    })
+      .then(() => {
+        Toast.show({
+          type: "success",
+          text1: "Profile editing",
+          text2: "Profile updated successfully",
+          duration: 1500,
+        });
+        setIsEditModalVisible(false);
+      })
+      .catch((error) => {
+        Alert.alert("Error updating profile: ", error.message);
+      });
+  };
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity
-          style={{
-            marginRight: 10,
-          }}
-          onPress={onSignOut}
-        >
-          <AntDesign
-            name="logout"
-            size={24}
-            color={colors.gray}
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <TouchableOpacity
             style={{ marginRight: 10 }}
-          />
-        </TouchableOpacity>
+            onPress={handleEditProfile}
+          >
+            <AntDesign
+              name="edit"
+              size={24}
+              color={colors.gray}
+              style={{ marginRight: 10 }}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onSignOut} style={{ marginRight: 10 }}>
+            <AntDesign name="logout" size={24} color={colors.gray} />
+          </TouchableOpacity>
+        </View>
       ),
     });
   }, [navigation]);
@@ -43,10 +77,31 @@ const ProfilePage = () => {
   return (
     <View style={styles.container}>
       <Image source={defaultProfilePic} style={styles.profileImage} />
-      <Text style={styles.name}>{user.name}</Text>
-      <Text style={styles.email}>{user.email}</Text>
-      <Text style={styles.bio}>{user.bio}</Text>
+      <Text style={styles.name}>{name}</Text>
+      <Text style={styles.email}>{email}</Text>
+
+      {isEditModalVisible && (
+        <View style={styles.editModal}>
+          <View style={styles.editModalContent}>
+            <Text style={styles.editModalTitle}>Edit Profile</Text>
+            <TextInput
+              style={styles.editModalInput}
+              placeholder="Name"
+              value={name}
+              onChangeText={(text) => setName(text)}
+            />
+            <TouchableOpacity
+              style={styles.editModalButton}
+              onPress={handleSaveProfile}
+            >
+              <Text style={styles.editModalButtonText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+      <Toast />
     </View>
+    
   );
 };
 
@@ -83,18 +138,42 @@ const styles = StyleSheet.create({
     marginHorizontal: 40,
     marginBottom: 40,
   },
-  logoutButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
+  editModal: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  logoutButtonText: {
+  editModalContent: {
+    width: "80%",
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 10,
+  },
+  editModalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+  editModalInput: {
+    width: "100%",
+    padding: 10,
+    borderBottomWidth: 1,
+    borderColor: colors.gray,
+    marginBottom: 15,
+  },
+  editModalButton: {
+    backgroundColor: colors.primary,
+    padding: 10,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  editModalButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontWeight: "bold",
   },
 });

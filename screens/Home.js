@@ -4,6 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import { FontAwesome } from "@expo/vector-icons";
 import colors from "../colors";
 import { Entypo } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 
 const profilePic = require("../assets/default-profile-pic.png");
 
@@ -42,6 +43,7 @@ const Home = () => {
 
   return (
     <View style={styles.container}>
+      <Toast />
       <TouchableOpacity
         onPress={() => navigation.navigate("Chat")}
         style={styles.chatButton}

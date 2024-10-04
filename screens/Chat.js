@@ -78,7 +78,8 @@ export default function Chat() {
       onSend={(messages) => onSend(messages)}
       user={{
         _id: auth.currentUser?.uid,
-        avatar: "https://i.pravatar.cc/300",
+        name: auth.currentUser?.displayName,
+        avatar: auth.currentUser?.photoURL || "https://i.pravatar.cc/300",
       }}
       messagesContainerStyle={{
         backgroundColor: "#fff",

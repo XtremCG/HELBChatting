@@ -10,10 +10,9 @@ import {
   Alert,
 } from "react-native";
 import { createUserWithEmailAndPassword, updateProfile  } from "firebase/auth";
-import { auth, database } from "../config/firebase";
-import { addDoc, collection } from "firebase/firestore";
-
+import { auth } from "../config/firebase";
 const backImage = require("../assets/backImage.png");
+import Toast from "react-native-toast-message";
 
 export default function Register({ navigation }) {
   const [username, setUsername] = useState("");
@@ -35,8 +34,14 @@ export default function Register({ navigation }) {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password1);
       await updateProfile(userCredential.user, {
         displayName: username,
+
       });
-      Alert.alert("Signup success!");
+      Toast.show({
+        type: "success",
+        text1: "SignUp",
+        text2: "Signup success",
+        duration: 1500,
+      });
     } catch (error) {
       Alert.alert("Error Occurred: ", error.message);
     }
