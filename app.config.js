@@ -21,6 +21,13 @@ export default {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
       },
+      permissions: [
+        "INTERNET",  // Permet l'accès à Internet
+        "ACCESS_NETWORK_STATE",  // Permet de vérifier l'état de la connexion réseau
+        "CAMERA",  // Pour l'accès à la caméra si tu en as besoin pour prendre des photos
+        "READ_EXTERNAL_STORAGE",  // Lire depuis le stockage externe (galerie)
+        "WRITE_EXTERNAL_STORAGE",  // Écrire dans le stockage externe (nécessaire pour Android en dessous de Q)
+      ],
     },
     web: {
       favicon: "./assets/favicon.png",

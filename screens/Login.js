@@ -25,7 +25,6 @@ export default function Login({ navigation }) {
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
-      console.error("Firebase login error: ", error);
       Alert.alert("Error Occurred: ", error.message);
     }
   };

@@ -1,4 +1,9 @@
-import React, { useState, useLayoutEffect, useCallback } from "react";
+import React, {
+  useState,
+  useLayoutEffect,
+  useCallback,
+  useEffect,
+} from "react";
 import { GiftedChat } from "react-native-gifted-chat";
 import { TouchableOpacity, Text, Alert } from "react-native";
 import {
@@ -7,20 +12,29 @@ import {
   orderBy,
   query,
   onSnapshot,
+  deleteDoc,
+  doc,
 } from "firebase/firestore";
 import { auth, database } from "../config/firebase";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { AntDesign } from "@expo/vector-icons";
 import colors from "../colors";
 
 export default function Chat() {
   const [messages, setMessages] = useState([]);
   const navigation = useNavigation();
+  const route = useRoute();
+
+  const { recipientCourseName, recipientLocation } = route.params || {};
+  const recipientEndTime = new Date(route.params.recipientEndTime);
+  const recipientSchedulesId = route.params.recipientSchedulesId
 
   const onPopUpInfo = () => {
-    Alert.alert("Information", "This is your popup information!", [
-      { text: "OK" },
-    ]);
+    Alert.alert(
+      "Information",
+      `Course Name: ${recipientCourseName}\nLocation: ${recipientLocation}`,
+      [{ text: "OK" }]
+    );
   };
 
   useLayoutEffect(() => {
@@ -56,7 +70,7 @@ export default function Chat() {
         }))
       );
     });
-    return () => unsubscribe;
+    return () => unsubscribe();
   }, []);
 
   const onSend = useCallback((messages = []) => {
@@ -72,6 +86,57 @@ export default function Chat() {
     });
   }, []);
 
+  useEffect(() => {
+    const checkIfScheduleIsOver = () => {
+      const now = new Date();
+      const end = new Date(recipientEndTime);
+
+      if (now >= end) {
+        const chatsCollectionRef = collection(database, "chats");
+
+        onSnapshot(chatsCollectionRef, (snapshot) => {
+          snapshot.docs.forEach(async (docSnapshot) => {
+            const chatDoc = doc(database, "chats", docSnapshot.id);
+            await deleteDoc(chatDoc);
+          });
+        });
+
+        const slotDoc = doc(database, "schedules", recipientSchedulesId);
+        deleteDoc(slotDoc)
+          .then(() => {
+            console.log("Schedule successfully deleted!");
+          })
+          .catch((error) => {
+            console.error("Error removing schedule: ", error);
+          });
+
+        Alert.alert(
+          "The class has ended",
+          "You will be redirected to the homepage",
+          [
+            {
+              text: "OK",
+              onPress: () => navigation.navigate("Home"),
+            },
+          ]
+        );
+      }
+    };
+
+    const now = new Date();
+    const end = new Date(recipientEndTime);
+
+    const timeDifference = end - now;
+
+    if (timeDifference > 0) {
+      const timeout = setTimeout(checkIfScheduleIsOver, timeDifference);
+
+      return () => clearTimeout(timeout);
+    } else {
+      checkIfScheduleIsOver();
+    }
+  }, [recipientEndTime, navigation]);
+
   return (
     <GiftedChat
       messages={messages}
@@ -79,7 +144,7 @@ export default function Chat() {
       user={{
         _id: auth.currentUser?.uid,
         name: auth.currentUser?.displayName,
-        avatar: auth.currentUser?.photoURL || "https://i.pravatar.cc/300",
+        avatar: auth.currentUser?.photoURL || undefined,
       }}
       messagesContainerStyle={{
         backgroundColor: "#fff",
