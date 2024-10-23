@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import {
-  StyleSheet,
-  Text,
   View,
+  Text,
   TextInput,
-  Image,
-  SafeAreaView,
   TouchableOpacity,
-  Alert,
+  ImageBackground,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Image,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
@@ -15,53 +16,48 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, storage } from "../config/firebase";
 const backImage = require("../assets/backImage.png");
 import Toast from "react-native-toast-message";
+import colors from "../colors";
+import { Ionicons } from "@expo/vector-icons"; // Icons
 
 export default function Register({ navigation }) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password1, setPassword1] = useState("");
   const [password2, setPassword2] = useState("");
-  const [selectedImage, setSelectedImage] = useState(null); // Nouvelle variable pour l'image
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const uriToBlob = (uri) => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.onload = () => {
-        resolve(xhr.response); // Retourne le blob
+        resolve(xhr.response);
       };
       xhr.onerror = () => {
-        reject(new Error('Erreur lors de la conversion URI en Blob'));
+        reject(new Error("Erreur lors de la conversion URI en Blob"));
       };
-      xhr.responseType = 'blob'; // Définit la réponse comme blob
-      xhr.open('GET', uri, true); // Requête GET sur l'URI
-      xhr.send(null); // Envoie la requête
+      xhr.responseType = "blob";
+      xhr.open("GET", uri, true);
+      xhr.send(null);
     });
   };
 
-  // Fonction pour uploader l'image
   const uploadImage = async (uri) => {
     try {
-      // Créer une référence dans Firebase Storage
       const imageRef = ref(storage, `profileImages/${Date.now()}.jpg`);
-  
-      // Convertir l'URI en blob
+
       const blob = await uriToBlob(uri);
-  
-      // Uploader l'image dans Firebase Storage
+
       await uploadBytes(imageRef, blob);
-  
-      // Obtenir l'URL de téléchargement
+
       const downloadURL = await getDownloadURL(imageRef);
-      console.log('Image uploaded successfully! Download URL:', downloadURL);
-      
-      return downloadURL; // Renvoie l'URL téléchargée
+
+      return downloadURL;
     } catch (error) {
-      console.error('Error uploading image:', error);
-      Alert.alert('Erreur', 'Échec de l\'upload de l\'image.');
-      return null; // Renvoie null en cas d'erreur
+      console.error("Error uploading image:", error);
+      Alert.alert("Erreur", "Échec de l'upload de l'image.");
+      return null;
     }
   };
-  
 
   const pickImage = async () => {
     try {
@@ -71,22 +67,26 @@ export default function Register({ navigation }) {
         aspect: [4, 3],
         quality: 1,
       });
-  
+
       if (!result.canceled && result.assets) {
         const uri = result.assets[0].uri;
         setSelectedImage(uri);
       } else {
-        console.log('Image selection canceled or no image found');
+        console.log("Image selection canceled or no image found");
       }
     } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Image recovery failed.');
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Image recovery failed.");
     }
   };
-  
 
   const onHandleSignup = async () => {
-    if (email === "" || password1 === "" || password2 === "" || username === "") {
+    if (
+      email === "" ||
+      password1 === "" ||
+      password2 === "" ||
+      username === ""
+    ) {
       Alert.alert("Please fill in all fields");
       return;
     }
@@ -96,20 +96,21 @@ export default function Register({ navigation }) {
     }
 
     try {
-      // Création de l'utilisateur
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password1);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password1
+      );
       const user = userCredential.user;
 
       let photoURL = null;
       if (selectedImage) {
-        photoURL = await uploadImage(selectedImage); // Upload et obtention de l'URL de l'image
+        photoURL = await uploadImage(selectedImage);
       }
-      console.log("Photo",photoURL);
 
-      // Mise à jour du profil utilisateur
       await updateProfile(user, {
         displayName: username,
-        photoURL: photoURL || undefined, // Ajout de l'URL de l'image si elle existe
+        photoURL: photoURL || undefined,
       });
 
       Toast.show({
@@ -118,92 +119,106 @@ export default function Register({ navigation }) {
         text2: "Signup success",
         duration: 1500,
       });
-
     } catch (error) {
       Alert.alert("Error Occurred: ", error.message);
     }
   };
 
-  return (
+   return (
     <View style={styles.container}>
+      {/* Background Image */}
       <Image source={backImage} style={styles.backImage} />
+
+      {/* White Sheets */}
       <View style={styles.whiteSheets} />
+
+      {/* Form Section */}
       <SafeAreaView style={styles.form}>
-        <Text style={styles.title}>Sign Up</Text>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+          <Text style={styles.title}>Sign Up</Text>
 
-        {/* Image sélectionnée */}
-        {selectedImage && (
-          <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
-        )}
+          {/* Input: Username with Icon */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={24} color="#7383f3" />
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Username"
+              autoCapitalize="none"
+              value={username}
+              autoFocus={true}
+              onChangeText={(text) => setUsername(text)}
+            />
+          </View>
 
-        {/* Bouton pour sélectionner l'image de profil */}
-        <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
-          <Text style={{ fontWeight: "bold", color: "#fff", fontSize: 18 }}>
-            Select Profile Image
-          </Text>
-        </TouchableOpacity>
+          {/* Input: Email with Icon */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="mail-outline" size={24} color="#7383f3" />
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Email"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              value={email}
+              onChangeText={(text) => setEmail(text)}
+            />
+          </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Username"
-          autoCapitalize="none"
-          value={username}
-          autoFocus={true}
-          onChangeText={(text) => setUsername(text)}
-        />
+          {/* Input: Password with Icon */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={24} color="#7383f3" />
+            <TextInput
+              style={styles.input}
+              secureTextEntry
+              placeholder="Enter Password"
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="password"
+              value={password1}
+              onChangeText={(text) => setPassword1(text)}
+            />
+          </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Email"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          textContentType="emailAddress"
-          value={email}
-          onChangeText={(text) => setEmail(text)}
-        />
+          {/* Input: Confirm Password with Icon */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={24} color="#7383f3" />
+            <TextInput
+              style={styles.input}
+              secureTextEntry
+              placeholder="Confirm Password"
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="password"
+              value={password2}
+              onChangeText={(text) => setPassword2(text)}
+            />
+          </View>
 
-        <TextInput
-          style={styles.input}
-          secureTextEntry
-          placeholder="Enter Password"
-          autoCapitalize="none"
-          autoCorrect={false}
-          textContentType="password"
-          value={password1}
-          onChangeText={(text) => setPassword1(text)}
-        />
-
-        <TextInput
-          style={styles.input}
-          secureTextEntry
-          placeholder="Confirm Password"
-          autoCapitalize="none"
-          autoCorrect={false}
-          textContentType="password"
-          value={password2}
-          onChangeText={(text) => setPassword2(text)}
-        />
-
-        <TouchableOpacity style={styles.button} onPress={onHandleSignup}>
-          <Text style={{ fontWeight: "bold", color: "#fff", fontSize: 18 }}>
-            Sign Up
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.loginPrompt}>
-          <Text style={{ color: "grey", fontWeight: "600", fontSize: 14 }}>
-            Already have an account?{" "}
-          </Text>
-          <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-            <Text style={{ color: "#7383f3", fontWeight: "600", fontSize: 14 }}>
-              Login
-            </Text>
+          <TouchableOpacity style={styles.imageButton} onPress={pickImage}>
+            <ImageBackground
+              source={{ uri: selectedImage }}
+              style={styles.imageBackground}
+              imageStyle={styles.imageStyle}
+            >
+              <Text style={styles.buttonText}>Select Profile Image</Text>
+            </ImageBackground>
           </TouchableOpacity>
-        </View>
+
+          <TouchableOpacity style={styles.button} onPress={onHandleSignup}>
+            <Text style={styles.signupButtonText}>Sign Up</Text>
+          </TouchableOpacity>
+
+          <View style={styles.loginPrompt}>
+            <Text style={styles.loginText}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+              <Text style={styles.loginLink}>Login</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -213,18 +228,31 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 38,
     fontWeight: "bold",
-    color: "#7383f3",
+    color: colors.primary,
     alignSelf: "center",
     paddingBottom: 24,
     marginTop: 160,
   },
-  input: {
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#F6F7FB",
     height: 58,
     marginBottom: 20,
     fontSize: 16,
     borderRadius: 10,
-    padding: 12,
+    paddingHorizontal: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  input: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 16,
+    color: "#333",
   },
   backImage: {
     position: "absolute",
@@ -235,7 +263,7 @@ const styles = StyleSheet.create({
   },
   whiteSheets: {
     width: "100%",
-    height: "75%",
+    height: "85%",
     position: "absolute",
     bottom: 0,
     backgroundColor: "#fff",
@@ -247,20 +275,44 @@ const styles = StyleSheet.create({
     marginHorizontal: 30,
   },
   button: {
-    backgroundColor: "#7383f3",
+    backgroundColor: colors.primary,
     height: 58,
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 30,
   },
-  imagePickerButton: {
-    backgroundColor: "#7383f3",
-    height: 58,
+  imageButton: {
+    height: 200,
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginTop: 20,
+    overflow: "hidden",
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  imageBackground: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageStyle: {
+    borderRadius: 10,
+  },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 5,
+  },
+  signupButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 18,
   },
   selectedImage: {
     width: 100,
@@ -271,8 +323,19 @@ const styles = StyleSheet.create({
   },
   loginPrompt: {
     marginTop: 20,
+    marginBottom: 20,
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "center",
+  },
+  loginText: {
+    color: "grey",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  loginLink: {
+    color: colors.primary,
+    fontWeight: "600",
+    fontSize: 14,
   },
 });

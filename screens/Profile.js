@@ -17,7 +17,6 @@ import Toast from "react-native-toast-message";
 
 const ProfilePage = () => {
   const navigation = useNavigation();
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [name, setName] = useState(auth.currentUser?.displayName || "");
   const [email, setEmail] = useState(auth.currentUser?.email || "");
   const [profilePic, setProfilePic] = useState(auth.currentUser?.photoURL || undefined);

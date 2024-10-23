@@ -26,15 +26,15 @@ export default function Chat() {
   const route = useRoute();
 
   const { recipientCourseName, recipientLocation } = route.params || {};
-  const recipientEndTime = new Date(route.params.recipientEndTime);
-  const recipientSchedulesId = route.params.recipientSchedulesId
-
+  
   const onPopUpInfo = () => {
     Alert.alert(
       "Information",
       `Course Name: ${recipientCourseName}\nLocation: ${recipientLocation}`,
       [{ text: "OK" }]
     );
+
+    Alert.alert("Information", "You will have more informations on schedule later")
   };
 
   useLayoutEffect(() => {
@@ -73,69 +73,26 @@ export default function Chat() {
     return () => unsubscribe();
   }, []);
 
-  const onSend = useCallback((messages = []) => {
+  const onSend = useCallback(async (messages = []) => {
     setMessages((previousMessages) =>
       GiftedChat.append(previousMessages, messages)
     );
     const { _id, createdAt, text, user } = messages[0];
-    addDoc(collection(database, "chats"), {
-      _id,
-      text,
-      createdAt,
-      user,
-    });
-  }, []);
-
-  useEffect(() => {
-    const checkIfScheduleIsOver = () => {
-      const now = new Date();
-      const end = new Date(recipientEndTime);
-
-      if (now >= end) {
-        const chatsCollectionRef = collection(database, "chats");
-
-        onSnapshot(chatsCollectionRef, (snapshot) => {
-          snapshot.docs.forEach(async (docSnapshot) => {
-            const chatDoc = doc(database, "chats", docSnapshot.id);
-            await deleteDoc(chatDoc);
-          });
-        });
-
-        const slotDoc = doc(database, "schedules", recipientSchedulesId);
-        deleteDoc(slotDoc)
-          .then(() => {
-            console.log("Schedule successfully deleted!");
-          })
-          .catch((error) => {
-            console.error("Error removing schedule: ", error);
-          });
-
-        Alert.alert(
-          "The class has ended",
-          "You will be redirected to the homepage",
-          [
-            {
-              text: "OK",
-              onPress: () => navigation.navigate("Home"),
-            },
-          ]
-        );
-      }
-    };
-
-    const now = new Date();
-    const end = new Date(recipientEndTime);
-
-    const timeDifference = end - now;
-
-    if (timeDifference > 0) {
-      const timeout = setTimeout(checkIfScheduleIsOver, timeDifference);
-
-      return () => clearTimeout(timeout);
-    } else {
-      checkIfScheduleIsOver();
+  
+    try {
+      await addDoc(collection(database, "chats"), {
+        _id,
+        text,
+        createdAt,
+        user,
+      });
+    } catch (error) {
+      console.error("Error adding document: ", error);
+      Alert.alert("Error", "Message could not be sent. Please try again.");
     }
-  }, [recipientEndTime, navigation]);
+  }, []);
+  
+
 
   return (
     <GiftedChat
