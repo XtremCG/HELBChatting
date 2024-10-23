@@ -1,7 +1,5 @@
 # HELBChatting
 
-![HELBChatting Logo](https://link-to-your-logo.png)
-
 HELBChatting est une application de messagerie en temps réel conçue pour faciliter la communication entre les utilisateurs. Avec une interface intuitive et des fonctionnalités robustes, HELBChatting permet des conversations fluides et sécurisées.
 
 ## Table des matières
