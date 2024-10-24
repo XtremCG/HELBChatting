@@ -104,14 +104,20 @@ const Home = () => {
       if (timeUntilNext > 0) {
         timeoutId = setTimeout(() => {
           setCurrentSchedule(nextSchedule);
-          setNextSchedule(null); // Optionnel, si tu veux "vider" nextSchedule après le changement.
+  
+          setRemainingSchedules((prevSchedules) => {
+            const [firstSchedule, ...restSchedules] = prevSchedules;
+            setNextSchedule(firstSchedule || null);
+            return restSchedules;
+          });
         }, timeUntilNext);
       }
     }
   
-    // Nettoyage du timeout lors du démontage du composant ou de la mise à jour de nextSchedule
     return () => clearTimeout(timeoutId);
-  }, [nextSchedule]);
+  }, [nextSchedule, remainingSchedules]);
+  
+  
   
 
   useLayoutEffect(() => {

@@ -9,15 +9,19 @@ import {
   ScrollView,
   StyleSheet,
   Image,
+  Alert,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, storage } from "../config/firebase";
 const backImage = require("../assets/backImage.png");
+const defaultProfilePic = require("../assets/default-profile-pic.png");
 import Toast from "react-native-toast-message";
 import colors from "../colors";
-import { Ionicons } from "@expo/vector-icons"; // Icons
+import { Ionicons } from "@expo/vector-icons";
+import * as FileSystem from 'expo-file-system';
+
 
 export default function Register({ navigation }) {
   const [username, setUsername] = useState("");
@@ -54,7 +58,7 @@ export default function Register({ navigation }) {
       return downloadURL;
     } catch (error) {
       console.error("Error uploading image:", error);
-      Alert.alert("Erreur", "Échec de l'upload de l'image.");
+      Alert.alert("Error", "Error uploading your profile image.");
       return null;
     }
   };
@@ -104,9 +108,16 @@ export default function Register({ navigation }) {
       const user = userCredential.user;
 
       let photoURL = null;
-      if (selectedImage) {
-        photoURL = await uploadImage(selectedImage);
-      }
+       if (selectedImage) {
+         photoURL = await uploadImage(selectedImage);
+       } else {
+         const localUri = FileSystem.cacheDirectory + "default-profile-pic.png";
+         await FileSystem.copyAsync({
+           from: Asset.fromModule(defaultProfilePic).uri,
+           to: localUri,
+         });
+         photoURL = await uploadImage(localUri);
+       }
 
       await updateProfile(user, {
         displayName: username,

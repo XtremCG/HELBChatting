@@ -25,7 +25,7 @@ export default function Chat() {
   const navigation = useNavigation();
   const route = useRoute();
 
-  const { recipientCourseName, recipientLocation } = route.params || {};
+  const { recipientCourseName, recipientLocation, recipientEndTime, recipientSchedulesId } = route.params || {};
   
   const onPopUpInfo = () => {
     Alert.alert(
@@ -72,6 +72,46 @@ export default function Chat() {
     });
     return () => unsubscribe();
   }, []);
+  
+  useEffect(() => {
+    let timeoutId;
+  
+    if (nextSchedule) {
+      const now = new Date();
+      const timeUntilEnd = recipientEndTime - now;
+  
+      const deleteScheduleAndChatCollection = async () => {
+        try {
+          await deleteDoc(doc(database, "schedules", recipientSchedulesId));
+  
+          const chatCollectionRef = collection(database, "chats");
+          const chatQuerySnapshot = await getDocs(chatCollectionRef);
+          const batch = writeBatch(database);
+  
+          chatQuerySnapshot.forEach((doc) => {
+            batch.delete(doc.ref);
+          });
+  
+          await batch.commit();
+  
+          Alert.alert("Schedule and chat deleted", "The schedule and all chat messages have been deleted.");
+          navigation.goBack();
+        } catch (error) {
+          console.error("Error deleting schedule and chat collection: ", error);
+        }
+      };
+      if (timeUntilEnd > 0) {
+        timeoutId = setTimeout(deleteScheduleAndChatCollection, timeUntilEnd);
+      } else {
+        deleteScheduleAndChatCollection();
+      }
+    }
+  
+    return () => clearTimeout(timeoutId);
+  }, [recipientEndTime, recipientSchedulesId, navigation]);
+  
+  
+
 
   const onSend = useCallback(async (messages = []) => {
     setMessages((previousMessages) =>
