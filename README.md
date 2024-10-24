@@ -1,6 +1,6 @@
 # HELBChatting
 
-HELBChatting est une application de messagerie pour les étudiants de B3 de ma HELB en temps réel conçue pour faciliter la communication entre les utilisateurs. Avec une interface intuitive et des fonctionnalités robustes, HELBChatting permet des conversations fluides et sécurisées.
+HELBChatting est une application de messagerie en temps réel pour les étudiants de B3 de la HELB conçue pour faciliter la communication entre les utilisateurs. Avec une interface intuitive et des fonctionnalités robustes, HELBChatting permet des conversations fluides et sécurisées.
 
 
 ## Table des matières
