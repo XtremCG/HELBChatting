@@ -10,7 +10,6 @@ import { Entypo } from "@expo/vector-icons";
 /* 
 TODO 
   - update schedule on the home page
-  - click on the schedule => display all schedule infos (location, prof)
 */
 
 
