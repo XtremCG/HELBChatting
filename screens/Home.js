@@ -6,26 +6,25 @@ import {
   Image,
   StyleSheet,
   ScrollView,
-  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { FontAwesome } from "@expo/vector-icons";
 import colors from "../colors";
 import { Entypo } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
-import { auth, database } from "../config/firebase";
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  deleteDoc,
-  doc,
-} from "firebase/firestore";
+import { auth } from "../config/firebase"; // Gardez cette importation pour l'authentification si nécessaire.
 
 const Home = () => {
   const navigation = useNavigation();
   const profilePic = auth.currentUser?.photoURL || undefined;
+
+  const schedulesDict = {
+    "Monday": ["8:00 AM - 10:00 AM", "10:15 AM - 12:15 PM", "1:15 PM - 3:15 PM", "3:30 PM - 5:30 PM"],
+    "Tuesday": ["8:00 AM - 10:00 AM", "10:15 AM - 12:15 PM", "1:15 PM - 3:15 PM", "3:30 PM - 5:30 PM"],
+    "Wednesday": ["8:00 AM - 10:00 AM", "10:15 AM - 12:15 PM", "1:15 PM - 3:15 PM", "3:30 PM - 5:30 PM"],
+    "Thursday": ["8:00 AM - 10:00 AM", "10:15 AM - 12:15 PM", "1:15 PM - 3:15 PM", "3:30 PM - 5:30 PM"],
+    "Friday": ["8:00 AM - 10:00 AM", "10:15 AM - 12:15 PM", "1:15 PM - 3:15 PM", "3:30 PM - 5:30 PM"],
+  };
 
   const [currentSchedule, setCurrentSchedule] = useState(null);
   const [nextSchedule, setNextSchedule] = useState(null);
@@ -36,7 +35,6 @@ const Home = () => {
       Toast.show({
         text1: "No schedule found",
         type: "error",
-        
       });
       return;
     }
@@ -47,64 +45,56 @@ const Home = () => {
       recipientEndTime: currentSchedule.end.getTime(),
       recipientSchedulesId: currentSchedule.id,
     });
-    navigation.navigate("Chat");
   };
 
   useLayoutEffect(() => {
-    const collectionRef = collection(database, "schedules");
-    const q = query(collectionRef, orderBy("start", "asc"));
-  
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const fetchedSchedules = [];
-      const now = new Date();
-  
-      for (const docSnapshot of snapshot.docs) {
-        const data = docSnapshot.data();
-        const schedule = {
-          id: docSnapshot.id,
-          course: data.course,
-          start: data.start?.toDate ? data.start.toDate() : new Date(data.start),
-          end: data.end?.toDate ? data.end.toDate() : new Date(data.end),
-          location: data.location,
-        };
-  
-        if (schedule.end <= now) {
-          await deleteDoc(doc(database, "schedules", docSnapshot.id));
-          console.log(`Schedule with ID ${docSnapshot.id} deleted because it's expired.`);
-        } else {
-          fetchedSchedules.push(schedule);
-        }
-      }
-  
-      const current = fetchedSchedules.find(
-        (schedule) => schedule.start <= now && schedule.end >= now
-      );
-      const next = fetchedSchedules.find(
-        (schedule) => schedule.start > now && (!current || schedule.id !== current.id)
-      );
-      const remaining = fetchedSchedules.filter(
-        (schedule) => schedule.id !== (next ? next.id : null) && schedule.id !== (current ? current.id : null)
-      );
-  
-      setCurrentSchedule(current || null);
-      setNextSchedule(next || null);
-      setRemainingSchedules(remaining);
+    const now = new Date();
+    const currentDay = now.toLocaleString('en-US', { weekday: 'long' }); // Get the current day (e.g., "Monday")
+    const todaySchedules = schedulesDict[currentDay] || [];
+    
+    // Assuming each schedule lasts 2 hours and starts at the specified time
+    const fetchedSchedules = todaySchedules.map((timeSlot, index) => {
+      const [startTime, endTime] = timeSlot.split(" - ");
+      const start = new Date(now);
+      start.setHours(parseInt(startTime.split(':')[0]), parseInt(startTime.split(':')[1]), 0);
+      const end = new Date(start);
+      end.setHours(end.getHours() + 2); // Assuming each slot is 2 hours long
+
+      return {
+        id: `${currentDay}-${index}`, // Unique ID based on day and index
+        course: `Course ${index + 1}`, // Example course name
+        start,
+        end,
+        location: `Room ${index + 1}`, // Example location
+      };
     });
-  
-    return () => unsubscribe();
+
+    const current = fetchedSchedules.find(
+      (schedule) => schedule.start <= now && schedule.end >= now
+    );
+    const next = fetchedSchedules.find(
+      (schedule) => schedule.start > now && (!current || schedule.id !== current.id)
+    );
+    const remaining = fetchedSchedules.filter(
+      (schedule) => schedule.id !== (next ? next.id : null) && schedule.id !== (current ? current.id : null)
+    );
+
+    setCurrentSchedule(current || null);
+    setNextSchedule(next || null);
+    setRemainingSchedules(remaining);
   }, []);
-  
+
   useEffect(() => {
     let timeoutId;
-  
+
     if (nextSchedule) {
       const now = new Date();
       const timeUntilNext = nextSchedule.start - now;
-  
+
       if (timeUntilNext > 0) {
         timeoutId = setTimeout(() => {
           setCurrentSchedule(nextSchedule);
-  
+
           setRemainingSchedules((prevSchedules) => {
             const [firstSchedule, ...restSchedules] = prevSchedules;
             setNextSchedule(firstSchedule || null);
@@ -113,12 +103,9 @@ const Home = () => {
         }, timeUntilNext);
       }
     }
-  
+
     return () => clearTimeout(timeoutId);
   }, [nextSchedule, remainingSchedules]);
-  
-  
-  
 
   useLayoutEffect(() => {
     navigation.setOptions({
