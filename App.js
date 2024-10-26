@@ -10,7 +10,6 @@ import LoginScreen from "./screens/Login";
 import SignupScreen from "./screens/Signup";
 import HomeScreen from "./screens/Home";
 import ProfileScreen from "./screens/Profile";
-import AddScheduleScreen from "./screens/AddSchedule";
 
 
 const Stack = createStackNavigator();
@@ -32,7 +31,6 @@ function MainStack() {
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
-      <Stack.Screen name="AddSchedule" component={AddScheduleScreen} />
     </Stack.Navigator>
   );
 }
@@ -51,7 +49,7 @@ function RootNavigator() {
   const { user, setUser } = useContext(AuthUserContext);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, 
+    const unsubscribe = onAuthStateChanged(auth,
       async authenticatedUser => {
         authenticatedUser ? setUser(authenticatedUser) : setUser(null);
         setLoading(false);

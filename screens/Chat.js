@@ -14,6 +14,7 @@ import {
   onSnapshot,
   deleteDoc,
   doc,
+  getDocs
 } from "firebase/firestore";
 import { auth, database } from "../config/firebase";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -25,16 +26,14 @@ export default function Chat() {
   const navigation = useNavigation();
   const route = useRoute();
 
-  const { recipientCourseName, recipientLocation, recipientEndTime, recipientSchedulesId } = route.params || {};
-  
+  const { recipientCourseName, recipientLocation, recipientEndTime } = route.params || {};
+
   const onPopUpInfo = () => {
     Alert.alert(
       "Information",
       `Course Name: ${recipientCourseName}\nLocation: ${recipientLocation}`,
       [{ text: "OK" }]
     );
-
-    Alert.alert("Information", "You will have more informations on schedule later")
   };
 
   useLayoutEffect(() => {
@@ -58,7 +57,7 @@ export default function Chat() {
   }, [navigation]);
 
   useLayoutEffect(() => {
-    const collectionRef = collection(database, "chats");
+    const collectionRef = collection(database, "messages");
     const q = query(collectionRef, orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setMessages(
@@ -72,55 +71,15 @@ export default function Chat() {
     });
     return () => unsubscribe();
   }, []);
-  
-  useEffect(() => {
-    let timeoutId;
-  
-    if (nextSchedule) {
-      const now = new Date();
-      const timeUntilEnd = recipientEndTime - now;
-  
-      const deleteScheduleAndChatCollection = async () => {
-        try {
-          await deleteDoc(doc(database, "schedules", recipientSchedulesId));
-  
-          const chatCollectionRef = collection(database, "chats");
-          const chatQuerySnapshot = await getDocs(chatCollectionRef);
-          const batch = writeBatch(database);
-  
-          chatQuerySnapshot.forEach((doc) => {
-            batch.delete(doc.ref);
-          });
-  
-          await batch.commit();
-  
-          Alert.alert("Schedule and chat deleted", "The schedule and all chat messages have been deleted.");
-          navigation.goBack();
-        } catch (error) {
-          console.error("Error deleting schedule and chat collection: ", error);
-        }
-      };
-      if (timeUntilEnd > 0) {
-        timeoutId = setTimeout(deleteScheduleAndChatCollection, timeUntilEnd);
-      } else {
-        deleteScheduleAndChatCollection();
-      }
-    }
-  
-    return () => clearTimeout(timeoutId);
-  }, [recipientEndTime, recipientSchedulesId, navigation]);
-  
-  
-
 
   const onSend = useCallback(async (messages = []) => {
     setMessages((previousMessages) =>
       GiftedChat.append(previousMessages, messages)
     );
     const { _id, createdAt, text, user } = messages[0];
-  
+
     try {
-      await addDoc(collection(database, "chats"), {
+      await addDoc(collection(database, "messages"), {
         _id,
         text,
         createdAt,
@@ -131,8 +90,43 @@ export default function Chat() {
       Alert.alert("Error", "Message could not be sent. Please try again.");
     }
   }, []);
-  
 
+  useEffect(() => {
+    const endTime = new Date(recipientEndTime);
+    const now = new Date();
+    const timeUntilEnd = endTime - now;
+    const messagesRef = collection(database, "messages");
+
+    if (timeUntilEnd > 0) {
+      const timeoutId = setTimeout(async () => {
+        try {
+          // Récupérer tous les documents de la collection
+          const querySnapshot = await getDocs(messagesRef);
+          const deletePromises = [];
+
+          // Itérer sur chaque document et le supprimer
+          querySnapshot.forEach((doc) => {
+            deletePromises.push(deleteDoc(doc.ref));
+          });
+
+          // Attendre que toutes les suppressions soient terminées
+          await Promise.all(deletePromises);
+
+          setMessages([]);
+          Alert.alert(
+            "Schedule over",
+            "You will be redirected to the home page",
+            [{ text: "OK", onPress: () => navigation.goBack() }]
+          );
+
+        } catch (error) {
+          console.error("Erreur lors de la suppression de la collection de messages :", error);
+        }
+      }, timeUntilEnd);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [recipientEndTime]);
 
   return (
     <GiftedChat
